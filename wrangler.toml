@@ -1,13 +1,12 @@
 name = "statio"
-type = "javascript"
 account_id = "YOUR_ACCOUNT_ID"
+compatibility_date = "2026-10-18"
+main = "worker.js"
 
-# R2 bucket binding (your R2 bucket name is set to "personal")
 [[r2_buckets]]
 binding = "MY_BUCKET"
 bucket_name = "personal"
 
-# KV namespace for metadata (replace id with your KV namespace id)
 [[kv_namespaces]]
 binding = "METADATA"
 id = "YOUR_KV_NAMESPACE_ID"
