@@ -1,11 +1,13 @@
-# wrangler.toml for the statio Worker
-# Keep your actual Cloudflare R2 bucket name private and replace this placeholder
-# before deploying.
-
 name = "statio"
 type = "javascript"
 account_id = "YOUR_ACCOUNT_ID"
 
+# R2 bucket binding (your R2 bucket name is set to "personal")
 [[r2_buckets]]
 binding = "MY_BUCKET"
-bucket_name = "your-private-bucket-name"
+bucket_name = "personal"
+
+# KV namespace for metadata (replace id with your KV namespace id)
+[[kv_namespaces]]
+binding = "METADATA"
+id = "YOUR_KV_NAMESPACE_ID"
