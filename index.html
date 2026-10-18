@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>STATION — Personal Web Station</title>
+
+  <!-- Retro / monospace fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+  <meta name="description" content="STATION — personal web station. Store files, play music, explore documents (backed by Cloudflare R2)." />
+
+  <style>
+    :root{
+      --bg:#07070a;
+      --panel:#141418;
+      --muted:#9a9aa8;
+      --accent:#e63946; /* vintage red */
+      --accent-2:#ff6b6b;
+      --yellow:#ffb703;
+      --card:#121215;
+      --glass: rgba(255,255,255,0.03);
+      --shadow: 6px 6px 0 rgba(0,0,0,0.95);
+      --radius:12px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: 'VT323', monospace;
+      background: radial-gradient(circle at 15% 10%, rgba(230,57,70,0.06), transparent 18%),
+                  radial-gradient(circle at 85% 90%, rgba(255,183,3,0.04), transparent 18%),
+                  var(--bg);
+      color:#f6f6f7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* app shell */
+    .station{
+      width:100%;
+      max-width:720px;
+      border-radius:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      border:4px solid #000;
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:0;
+    }
+
+    /* left column - vinyl + controls */
+    .panel-left{
+      background: linear-gradient(180deg, #111114, #0e0e11);
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:14px;
+      border-right:4px solid #000;
+    }
+
+    .brand{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .brand h1{font-family:'Press Start 2P';font-size:12px;color:var(--accent);letter-spacing:1px}
+    .status{background:var(--yellow);color:#000;border-radius:6px;padding:6px 8px;font-weight:700;font-size:12px}
+
+    .lcd{
+      width:100%;
+      background:#000;
+      border:2px solid var(--yellow);
+      padding:10px 12px;
+      text-align:center;
+      font-family:'VT323';
+      color:var(--yellow);
+      border-radius:8px;
+    }
+    .lcd .title{font-size:18px}
+    .lcd .artist{font-size:12px;color:var(--muted)}
+
+    /* vinyl stage - using SVG for crisp 2D red vintage vinyl */
+    .vinyl-stage{width:320px;height:320px;display:flex;align-items:center;justify-content:center}
+    .vinyl-wrap{width:260px;height:260px;position:relative;}
+
+    /* subtle drop shadow and smooth edges */
+    .vinyl-svg{filter: drop-shadow(0 12px 14px rgba(0,0,0,0.8));}
+
+    /* controls */
+    .controls{display:flex;gap:10px;width:100%;}
+    .btn{flex:1;padding:10px;border-radius:8px;border:2px solid #000;background:linear-gradient(180deg,var(--card),#151516);cursor:pointer;font-family:'Press Start 2P';font-size:12px}
+    .btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#fff}
+    .btn:active{transform:translateY(2px)}
+
+    /* right column - lists, links, and playlist */
+    .panel-right{padding:22px;background:linear-gradient(180deg,#0f0f12,#0b0b0d);display:flex;flex-direction:column;gap:14px}
+
+    .section-title{font-family:'Press Start 2P';color:var(--yellow);font-size:12px}
+
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:var(--panel);border:2px solid #000}
+    .item .meta{display:flex;flex-direction:column}
+    .item .name{font-weight:700}
+    .item .sub{color:var(--muted);font-size:12px}
+
+    .links{display:flex;gap:10px}
+    .link{display:inline-block;padding:8px 10px;background:#fff;color:#000;border-radius:8px;text-decoration:none;font-weight:700;border:2px solid #000}
+
+    footer{color:var(--muted);font-size:12px;text-align:center;margin-top:auto}
+
+    /* progress */
+    .progress-wrap{width:100%;display:flex;flex-direction:column;gap:6px}
+    .progress{height:8px;background:#0b0b0b;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
+    .progress > b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#ff8a8a)}
+    .time{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+    /* accessibility focus */
+    .tab-btn:focus,.btn:focus,.action:focus{outline:3px solid rgba(255,107,107,0.25);outline-offset:2px}
+
+    @media (prefers-reduced-motion: reduce){
+      .spin{animation:none !important}
+      .vinyl-svg{filter:none}
+    }
+
+    @media (max-width:760px){
+      .station{grid-template-columns:1fr;max-width:420px}
+      .vinyl-stage{width:260px;height:260px}
+      .vinyl-wrap{width:200px;height:200px}
+    }
+  </style>
+</head>
+<body>
+
+  <main class="station" role="application" aria-label="STATION personal web station">
+
+    <section class="panel-left" aria-labelledby="left-title">
+      <div class="brand">
+        <h1 id="left-title">STATION — R2</h1>
+        <div class="status">ONLINE</div>
+      </div>
+
+      <div class="lcd" aria-live="polite">
+        <div class="title" id="track-title">Midnight City</div>
+        <div class="artist" id="track-artist">M83 — Synthwave</div>
+      </div>
+
+      <div class="vinyl-stage" aria-hidden="true">
+        <div class="vinyl-wrap">
+          <!-- SVG vintage red vinyl: 2D smooth design, red label, subtle grooves -->
+          <svg class="vinyl-svg" viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="g-vinyl" cx="40%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#111" />
+                <stop offset="40%" stop-color="#0b0b0b" />
+                <stop offset="100%" stop-color="#050505" />
+              </radialGradient>
+              <radialGradient id="g-label" cx="40%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#ff6b6b" />
+                <stop offset="60%" stop-color="#e63946" />
+                <stop offset="100%" stop-color="#c6282a" />
+              </radialGradient>
+              <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.2" result="b" />
+                <feBlend in="SourceGraphic" in2="b" mode="screen" />
+              </filter>
+            </defs>
+
+            <!-- outer disc (groove area) -->
+            <circle cx="100" cy="100" r="92" fill="url(#g-vinyl)" />
+
+            <!-- subtle concentric grooves (thin rings) -->
+            <g stroke="#0b0b0b" stroke-opacity="0.06" stroke-width="0.7">
+              <circle cx="100" cy="100" r="80" />
+              <circle cx="100" cy="100" r="68" />
+              <circle cx="100" cy="100" r="56" />
+              <circle cx="100" cy="100" r="44" />
+              <circle cx="100" cy="100" r="32" />
+            </g>
+
+            <!-- red label -->
+            <circle cx="100" cy="100" r="30" fill="url(#g-label)" filter="url(#soft-glow)" />
+
+            <!-- center hole -->
+            <circle cx="100" cy="100" r="5" fill="#0b0b0b" />
+
+            <!-- glossy highlight on label -->
+            <path d="M72 78 C90 68,110 68,128 78" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- small text on label -->
+            <g font-family="'Press Start 2P', monospace" font-size="5" fill="#fff" text-anchor="middle">
+              <text x="100" y="96">SALMON</text>
+              <text x="100" y="102">RECS</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="controls" role="group" aria-label="player controls">
+        <button id="play" class="btn primary" aria-pressed="false">▶ PLAY</button>
+        <button id="next" class="btn" title="Next track">⏭</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress" aria-hidden="false">
+          <b id="progress-bar"></b>
+        </div>
+        <div class="time"><span id="time-cur">0:00</span><span id="time-dur">0:00</span></div>
+      </div>
+
+    </section>
+
+    <section class="panel-right" aria-labelledby="right-title">
+      <div class="header">
+        <h2 id="right-title" class="section-title">AUDIO RACK</h2>
+      </div>
+
+      <div class="list" id="playlist" role="list">
+        <!-- items populated by JS for accessibility and easy editing -->
+      </div>
+
+      <div class="section">
+        <div class="section-title">LINKS</div>
+        <div class="links">
+          <a class="link" href="https://instagram.com/salmontic_" target="_blank" rel="noopener noreferrer">INSTAGRAM</a>
+          <a class="link" href="https://salman-fares.nekoweb.org/#" target="_blank" rel="noopener noreferrer">PERSONAL SITE</a>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">STATION ID</div>
+        <div style="margin-top:8px;padding:10px;background:#fff;color:#111;border-radius:8px;border:2px solid #000;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:700">Salman Fares</div>
+            <div style="color:var(--muted);font-size:12px">#SF-2026-R2</div>
+          </div>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://salman-fares.nekoweb.org/#" alt="qr" width="80" height="80" style="border:2px solid #000"/>
+        </div>
+      </div>
+
+      <footer>Cloudflare R2 • Workers pipeline</footer>
+    </section>
+
+  </main>
+
+  <!-- lightweight script: no external build, accessible keyboard shortcuts, persistent playlist index -->
+  <script>
+    (function(){
+      // playlist data
+      const playlist = [
+        { title: 'Midnight City', artist: 'M83 — Synthwave', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+        { title: 'Resonance', artist: 'HOME — Chillwave', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+        { title: 'Veridis Quo', artist: 'Daft Punk — Electronic', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' }
+      ];
+
+      // elements
+      const playBtn = document.getElementById('play');
+      const nextBtn = document.getElementById('next');
+      const playlistEl = document.getElementById('playlist');
+      const titleEl = document.getElementById('track-title');
+      const artistEl = document.getElementById('track-artist');
+      const progressBar = document.getElementById('progress-bar');
+      const timeCur = document.getElementById('time-cur');
+      const timeDur = document.getElementById('time-dur');
+
+      // create audio element dynamically for better control
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      audio.crossOrigin = 'anonymous';
+
+      // state
+      let current = Number(localStorage.getItem('statio.current')) || 0;
+      let playing = false;
+
+      // build playlist UI
+      function renderPlaylist(){
+        playlistEl.innerHTML = '';
+        playlist.forEach((t, i) => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.setAttribute('role','listitem');
+          item.innerHTML = `
+            <div class="meta">
+              <div class="name">${t.title}</div>
+              <div class="sub">${t.artist}</div>
+            </div>
+            <div>
+              <button class="btn action" data-index="${i}" aria-label="Play ${t.title}">${i===current? '●':'▶'}</button>
+            </div>`;
+          playlistEl.appendChild(item);
+        });
+      }
+
+      // load track
+      function load(index){
+        current = (index+playlist.length)%playlist.length;
+        localStorage.setItem('statio.current', String(current));
+        const item = playlist[current];
+        audio.src = item.src;
+        titleEl.textContent = item.title;
+        artistEl.textContent = item.artist;
+        renderPlaylist();
+      }
+
+      // play / pause
+      async function togglePlay(){
+        if(!audio.src) load(current);
+        try{
+          if(audio.paused){
+            await audio.play();
+            playing = true;
+            playBtn.textContent = '⏸ PAUSE';
+            playBtn.setAttribute('aria-pressed','true');
+            document.querySelector('.vinyl-svg')?.classList.add('spin');
+          } else {
+            audio.pause();
+            playing = false;
+            playBtn.textContent = '▶ PLAY';
+            playBtn.setAttribute('aria-pressed','false');
+            document.querySelector('.vinyl-svg')?.classList.remove('spin');
+          }
+        }catch(e){
+          console.warn('Playback blocked or error', e);
+        }
+      }
+
+      function next(){
+        load((current+1)%playlist.length);
+        audio.play();
+        playing = true;
+        playBtn.textContent = '⏸ PAUSE';
+      }
+
+      // attach events
+      playBtn.addEventListener('click', togglePlay);
+      nextBtn.addEventListener('click', next);
+
+      // delegate play buttons in playlist
+      playlistEl.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('button[data-index]');
+        if(!btn) return;
+        const idx = Number(btn.dataset.index);
+        if(idx===current){ togglePlay(); return; }
+        load(idx);
+        audio.play();
+        playing = true;
+        playBtn.textContent = '⏸ PAUSE';
+      });
+
+      // audio time updates
+      audio.addEventListener('timeupdate', ()=>{
+        const pct = audio.duration ? (audio.currentTime/audio.duration)*100 : 0;
+        progressBar.style.width = pct + '%';
+        timeCur.textContent = formatTime(audio.currentTime);
+      });
+      audio.addEventListener('loadedmetadata', ()=>{
+        timeDur.textContent = formatTime(audio.duration || 0);
+      });
+      audio.addEventListener('ended', ()=>{
+        next();
+      });
+
+      // keyboard shortcuts: Space = play/pause, N = next
+      window.addEventListener('keydown', (e)=>{
+        if(e.target && /input|textarea/i.test(e.target.tagName)) return;
+        if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+        if(e.key.toLowerCase()==='n'){ next(); }
+      });
+
+      function formatTime(s){
+        if(!isFinite(s)) return '0:00';
+        const m = Math.floor(s/60); const sec = Math.floor(s%60).toString().padStart(2,'0');
+        return `${m}:${sec}`;
+      }
+
+      // spin animation class (CSS via JS for reduced-motion-safe) -- add simple CSS rule dynamically
+      const style = document.createElement('style');
+      style.textContent = `.spin{animation:spin 2.6s linear infinite;} @keyframes spin{100%{transform:rotate(360deg)}} .vinyl-svg{transition:transform 0.25s ease}`;
+      document.head.appendChild(style);
+
+      // initial load
+      renderPlaylist();
+      load(current);
+
+    })();
+  </script>
+
+</body>
+</html>
